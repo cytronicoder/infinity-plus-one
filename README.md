@@ -4,13 +4,13 @@ How does the choice of box-size window $[\varepsilon_{\min}, \varepsilon_{\max}]
 
 We report:
 
-* slope-based estimates $D_{\text{est}} = -m$
-* coefficient of determination $R^2$
-* residual diagnostics
-* absolute and relative errors against the theoretical benchmarks
+- slope-based estimates $D_{\text{est}} = -m$
+- coefficient of determination $R^2$
+- residual diagnostics
+- absolute and relative errors against the theoretical benchmarks
 
-  * $D_{\text{Koch}} = \ln(4) / \ln(3)$
-  * $D_{\text{Sier}} = \ln(3) / \ln(2)$
+  - $D_{\text{Koch}} = \ln(4) / \ln(3)$
+  - $D_{\text{Sier}} = \ln(3) / \ln(2)$
 
 ## Reproduce Results
 
@@ -32,9 +32,9 @@ python scripts/run_analysis.py --output results --max-iter 6 --density 120
 
 ### 3. Inspect outputs
 
-* `*_counts.csv` and `*_regressions.csv` for each fractal/iteration
-* `*_loglog.png`, `*_residuals.png`, `*_windows.png` plots
-* `iteration_accuracy.csv` and `iteration_accuracy.png` summarizing convergence toward theory
+- `*_counts.csv` and `*_regressions.csv` for each fractal/iteration
+- `*_loglog.png`, `*_residuals.png`, `*_windows.png` plots
+- `iteration_accuracy.csv` and `iteration_accuracy.png` summarizing convergence toward theory
 
 ## License
 
