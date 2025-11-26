@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -69,18 +72,15 @@ def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
     plt.close(fig)
 
 
-def run_pipeline(
-    output_dir: Path, max_iter: int = 6, sample_density: int = 120
-) -> None:
+def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     exp = FractalExperiment()
     summary_rows = []
 
     for spec in DEFAULT_SPECS:
         for iteration in range(1, max_iter + 1):
-            result = exp.run(
-                spec.name, iterations=iteration, sample_density=sample_density
-            )
+            print(f"Processing {spec.name} iteration {iteration}...")
+            result = exp.run(spec.name, iterations=iteration)
             prefix = f"{spec.name}_n{iteration}"
 
             counts_path = output_dir / f"{prefix}_counts.csv"
@@ -125,8 +125,5 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-iter", type=int, default=6, help="Maximum iteration depth"
     )
-    parser.add_argument(
-        "--density", type=int, default=120, help="Samples per segment/triangle"
-    )
     args = parser.parse_args()
-    run_pipeline(args.output, max_iter=args.max_iter, sample_density=args.density)
+    run_pipeline(args.output, max_iter=args.max_iter)

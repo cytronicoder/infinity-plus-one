@@ -18,9 +18,11 @@ from .fractals import (
 from .regression import summarize_windows
 
 
+import math
+
+
 @dataclass
 class ExperimentResult:
-    points: np.ndarray
     counts: pd.DataFrame
     regressions: pd.DataFrame
 
@@ -33,7 +35,7 @@ class FractalExperiment:
         self.specs: Dict[str, FractalSpec] = {spec.name: spec for spec in DEFAULT_SPECS}
 
     def _generate_points(
-        self, name: str, iterations: int, sample_density: int = 120
+        self, name: str, iterations: int, sample_density: int
     ) -> np.ndarray:
         spec = self.specs.get(name)
         if spec is None:
@@ -51,13 +53,35 @@ class FractalExperiment:
 
         raise ValueError(f"Unknown generator: {spec.generator}")
 
-    def run(
-        self, name: str, iterations: int, sample_density: int = 120
-    ) -> ExperimentResult:
-        points = self._generate_points(name, iterations, sample_density)
-        counts = box_count(points, self.epsilons)
+    def run(self, name: str, iterations: int) -> ExperimentResult:
         spec = self.specs[name]
-        regressions = summarize_windows(
-            counts, theoretical_dimension=spec.theoretical_dimension
+        all_counts = []
+
+        for eps in self.epsilons:
+            if name == "koch":
+                density = math.ceil(10 / eps)
+            elif name == "sierpinski":
+                side_len = 0.5**iterations
+                spacing = eps / 5.0
+                points_per_side = side_len / spacing
+                density = math.ceil(points_per_side**2)
+                density = max(1, density)
+            else:
+                density = 120
+
+            points = self._generate_points(name, iterations, density)
+            df = box_count(points, np.array([eps]))
+            all_counts.append(df)
+
+        counts_df = pd.concat(all_counts, ignore_index=True)
+        counts_df = counts_df.sort_values("epsilon", ascending=False).reset_index(
+            drop=True
         )
-        return ExperimentResult(points=points, counts=counts, regressions=regressions)
+
+        regressions = summarize_windows(
+            counts_df["log_epsilon"].to_numpy(),
+            counts_df["log_counts"].to_numpy(),
+            theoretical_dimension=spec.theoretical_dimension,
+        )
+
+        return ExperimentResult(counts=counts_df, regressions=regressions)
