@@ -1,8 +1,8 @@
 ### Evaluating Fractal Dimension Estimates Across Scale Ranges
 
-_How does the choice of box-size window $[\varepsilon_{\min},\varepsilon\*{\max}]$ affect the box-counting dimension estimate $D_{\text{est}}$ for finite-iteration approximations ($n = 1..6$) of the Koch curve and the Sierpiński triangle when the grid is anchored at $(0, 0)$ and scaled to $[0, 1]^2$?\_
+_How does the choice of box-size window $$[\varepsilon_{\min},\varepsilon\*{\max}]$$ affect the box-counting dimension estimate $$D_{\text{est}}$$ for finite-iteration approximations ($$n = 1..6$$) of the Koch curve and the Sierpiński triangle when the grid is anchored at $$(0, 0)$$ and scaled to $$[0, 1]^2$$?\_
 
-Using power-of-two scales $\varepsilon*i = 2^{-i}$ for $i = 1..10$, grids anchored at $(0, 0)$, and normalized geometries in $[0, 1]^2$, we fit log-log regressions across full, coarse, fine, and sliding windows. We report slope-based estimates $D_{\text{est}}=-m$, coefficient of determination $R^2$, residual diagnostics, and absolute/relative errors against theoretical benchmarks $D_{\text{Koch}} = \ln 4 / \ln 3$ and $D*{\text{Sier}} = \ln 3 / \ln 2$.
+Using power-of-two scales $$\varepsilon*i = 2^{-i}$$ for $$i = 1..10$$, grids anchored at $$(0, 0)$$, and normalized geometries in $$[0, 1]^2$$, we fit log-log regressions across full, coarse, fine, and sliding windows. We report slope-based estimates $$D_{\text{est}}=-m$$, coefficient of determination $$R^2$$, residual diagnostics, and absolute/relative errors against theoretical benchmarks $$D_{\text{Koch}} = \ln 4 / \ln 3$$ and $$D*{\text{Sier}} = \ln 3 / \ln 2$$.
 
 #### Reproduce results
 
