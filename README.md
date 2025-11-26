@@ -39,7 +39,3 @@ python scripts/run_analysis.py --output results --max-iter 6 --density 120
 ## License
 
 Released under the MIT License. See [`LICENSE`](LICENSE) for details.
-
----
-
-If you'd like, I can also generate a **GitHub README badge block**, **add a TOC**, **insert collapsible sections**, or **auto-convert formulas into SVG images** for perfect rendering.
