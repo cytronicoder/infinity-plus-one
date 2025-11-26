@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -21,6 +22,13 @@ from fractal_dimension.fractals import (
 )
 from fractal_dimension.pipeline import FractalExperiment
 from fractal_dimension.regression import fit_scaling_relationship
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
 
 sns.set_theme(style="ticks", context="paper", font_scale=1.2)
 plt.rcParams.update(
@@ -239,7 +247,7 @@ def plot_error_heatmap(
 def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Generating Grid Overlay Visualizations...")
+    logger.info("Generating Grid Overlay Visualizations...")
     plot_grid_overlay(
         "koch", generate_koch_curve, output_dir / "viz_grid_overlay_koch.png"
     )
@@ -257,7 +265,7 @@ def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
         fractal_regressions = []
 
         for iteration in range(1, max_iter + 1):
-            print(f"Processing {spec.name} iteration {iteration}...")
+            logger.info(f"Processing {spec.name} iteration {iteration}...")
             result = exp.run(spec.name, iterations=iteration)
             prefix = f"{spec.name}_n{iteration}"
 
@@ -269,6 +277,10 @@ def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
             result.regressions["iteration"] = iteration
             result.regressions.to_csv(regress_path, index=False)
             fractal_regressions.append(result.regressions)
+
+            logger.info(f"Running density check for {spec.name} n={iteration}...")
+            density_df = exp.run_density_check(spec.name, iterations=iteration)
+            density_df.to_csv(output_dir / f"{prefix}_density_check.csv", index=False)
 
             plot_log_log(
                 result.counts,
