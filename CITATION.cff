@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+title: Evaluating Fractal Dimension Estimates Across Scale Ranges
+message: "Please cite this work if you use the code or manuscript."
+authors:
+  - family-names: Researcher
+    given-names: Student
+    affiliation: International Baccalaureate
+license: MIT
+doi: 10.0000/placeholder-doi
+version: 1.0.0
+keywords:
+  - fractal dimension
+  - box counting
+  - mathematics IA
