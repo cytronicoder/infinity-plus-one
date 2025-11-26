@@ -1,2 +1,30 @@
-# infinity-plus-one
-❄️ Estimating the fractal dimension of Koch and Sierpiński sets using box-counting with variable scale windows
+### Evaluating Fractal Dimension Estimates Across Scale Ranges
+
+_How does the choice of box-size window $[\varepsilon_{\min},\varepsilon\*{\max}]$ affect the box-counting dimension estimate $D_{\text{est}}$ for finite-iteration approximations ($n = 1..6$) of the Koch curve and the Sierpiński triangle when the grid is anchored at $(0, 0)$ and scaled to $[0, 1]^2$?\_
+
+Using power-of-two scales $\varepsilon*i = 2^{-i}$ for $i = 1..10$, grids anchored at $(0, 0)$, and normalized geometries in $[0, 1]^2$, we fit log-log regressions across full, coarse, fine, and sliding windows. We report slope-based estimates $D_{\text{est}}=-m$, coefficient of determination $R^2$, residual diagnostics, and absolute/relative errors against theoretical benchmarks $D_{\text{Koch}} = \ln 4 / \ln 3$ and $D*{\text{Sier}} = \ln 3 / \ln 2$.
+
+#### Reproduce results
+
+1. Create a virtual environment and install dependencies:
+
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+
+2. Run the end-to-end pipeline (produces tables and plots in `results/`):
+
+   ```bash
+   python scripts/run_analysis.py --output results --max-iter 6 --density 120
+   ```
+
+3. Inspect outputs:
+   - `*_counts.csv` and `*_regressions.csv` for each fractal/iteration
+   - `*_loglog.png`, `*_residuals.png`, `*_windows.png` plots
+   - `iteration_accuracy.csv` and `iteration_accuracy.png` summarizing convergence toward theory
+
+## License
+
+This project is released under the MIT License. See `LICENSE` for details.

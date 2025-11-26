@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "wheel", "numpy", "pandas", "scipy", "seaborn"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fractal_dimension"
+version = "0.0.1"
+description = "Estimate fractal dimensions using box-counting"
+readme = "README.md"
+authors = [{ name = "Zeyu Yao", email = "26zeyuyaoy@sais.edu.sg" }]
+dependencies = ["matplotlib", "numpy", "pandas", "scipy", "seaborn"]
+
+[project.optional-dependencies]
+dev = ["black", "isort", "flake8", "pytest", "pre-commit"]
+notebooks = ["jupyter", "ipywidgets", "ipykernel"]
+docs = ["mkdocs", "mkdocs-material", "mkdocstrings[python]"]
+
+[project.urls]
+repository = "https://github.com/cytronicoder/infinity-plus-one"
+
+[tool.black]
+line-length = 88
+target-version = ["py37"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.pytest.ini_options]
+addopts = "--verbose --color=yes"
+python_files = "tests/*test*.py"
+norecursedirs = ".git .tox docs build"
+DJANGO_SETTINGS_MODULE = "tests.settings"
