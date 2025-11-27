@@ -9,7 +9,6 @@ from pathlib import Path
 
 from fractal_dimension.fractals import generate_koch_curve, generate_sierpinski_triangle
 
-# Set up matplotlib
 plt.rcParams.update(
     {
         "font.family": "serif",
@@ -23,11 +22,6 @@ plt.rcParams.update(
 def plot_combined_grid_overlay(output: Path, iteration: int = 3) -> None:
     """Visualize grid counting for both fractals at different scales in a combined figure."""
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-    fig.suptitle(
-        f"Grid Overlay Comparison: Koch Curve and Sierpiński Triangle (n={iteration})",
-        fontsize=20,
-        y=0.98
-    )
 
     fractals = [
         ("Koch Curve", generate_koch_curve),
@@ -78,14 +72,25 @@ def plot_combined_grid_overlay(output: Path, iteration: int = 3) -> None:
                 ax.add_patch(rect)
 
             ax.set_title(
-                f"{fractal_name}\n$\\varepsilon = 1/{int(1/eps)}$\n$N(\\varepsilon) = {len(hit_boxes)}$",
-                fontsize=16
+                f"$\\varepsilon = 1/{int(1/eps)}$\t$N(\\varepsilon) = {len(hit_boxes)}$",
+                fontsize=30,
             )
             ax.set_xlim(0, 1)
             ax.set_ylim(0, 1)
             ax.set_aspect("equal")
             ax.axis("off")
 
+        fig.text(
+            0.02,
+            0.75 - row * 0.5,
+            fractal_name,
+            va="center",
+            ha="center",
+            rotation=90,
+            fontsize=30,
+        )
+
+    fig.subplots_adjust(hspace=1, left=0.15)
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
