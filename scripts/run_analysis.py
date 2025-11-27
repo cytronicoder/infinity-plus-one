@@ -244,7 +244,12 @@ def plot_error_heatmap(
     plt.close(fig)
 
 
-def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
+def run_pipeline(
+    output_dir: Path,
+    max_iter: int = 6,
+    quick_density: bool = False,
+    parallel: bool = False,
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Grid Overlay Visualizations...")
@@ -265,7 +270,7 @@ def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
         fractal_regressions = []
 
         for iteration in range(1, max_iter + 1):
-            logger.info(f"Processing {spec.name} iteration {iteration}...")
+            logger.info("Processing %s iteration %d...", spec.name, iteration)
             result = exp.run(spec.name, iterations=iteration)
             prefix = f"{spec.name}_n{iteration}"
 
@@ -278,8 +283,14 @@ def run_pipeline(output_dir: Path, max_iter: int = 6) -> None:
             result.regressions.to_csv(regress_path, index=False)
             fractal_regressions.append(result.regressions)
 
-            logger.info(f"Running density check for {spec.name} n={iteration}...")
-            density_df = exp.run_density_check(spec.name, iterations=iteration)
+            logger.info("Running density check for %s n=%d...", spec.name, iteration)
+            density_df = exp.run_density_check(
+                spec.name,
+                iterations=iteration,
+                existing_result=result,
+                quick=quick_density,
+                parallel=parallel,
+            )
             density_df.to_csv(output_dir / f"{prefix}_density_check.csv", index=False)
 
             plot_log_log(
@@ -335,5 +346,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max-iter", type=int, default=6, help="Maximum iteration depth"
     )
+    parser.add_argument(
+        "--quick-density",
+        action="store_true",
+        help="Sample subset of epsilons for density check",
+    )
+    parser.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Run density check in parallel",
+    )
     args = parser.parse_args()
-    run_pipeline(args.output, max_iter=args.max_iter)
+    run_pipeline(
+        args.output,
+        max_iter=args.max_iter,
+        quick_density=args.quick_density,
+        parallel=args.parallel,
+    )

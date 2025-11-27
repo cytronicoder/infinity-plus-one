@@ -18,13 +18,59 @@ from .fractals import (
 from .regression import summarize_windows
 
 
+import logging
+import time
 import math
+import os
+from multiprocessing import Pool
+
+try:
+    from tqdm import tqdm
+except ImportError:
+
+    def tqdm(iterable, **kwargs):
+        return iterable
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ExperimentResult:
     counts: pd.DataFrame
     regressions: pd.DataFrame
+
+
+def _check_single_epsilon(args: tuple[str, int, float, FractalExperiment]) -> dict:
+    """Worker function for parallel density check."""
+    name, iterations, eps, exp = args
+    start_time = time.time()
+
+    # pylint: disable=protected-access
+    dens_base = exp._get_density(name, iterations, eps, double_density=False)
+    pts_base = exp._generate_points(name, iterations, dens_base)
+    count_base = box_count(pts_base, np.array([eps])).iloc[0]["counts"]
+    n_points_base = len(pts_base)
+
+    dens_double = exp._get_density(name, iterations, eps, double_density=True)
+    pts_double = exp._generate_points(name, iterations, dens_double)
+    count_double = box_count(pts_double, np.array([eps])).iloc[0]["counts"]
+
+    delta = (
+        abs(count_double - count_base) / count_double * 100 if count_double > 0 else 0.0
+    )
+
+    duration = time.time() - start_time
+
+    return {
+        "epsilon": eps,
+        "log_epsilon": -math.log(eps),
+        "N_base": count_base,
+        "N_dense": count_double,
+        "delta_percent": delta,
+        "points_sampled": n_points_base,
+        "duration": duration,
+    }
 
 
 class FractalExperiment:
@@ -60,11 +106,11 @@ class FractalExperiment:
         factor = 2 if double_density else 1
 
         if name == "koch":
-            return math.ceil(10 * factor / eps)
+            return math.ceil(4 * factor / eps)
 
         if name == "sierpinski":
             side_len = 0.5**iterations
-            spacing = eps / (5.0 * factor)
+            spacing = eps / (2.5 * factor)
             points_per_side = side_len / spacing
             density = math.ceil(points_per_side**2)
             return max(1, density)
@@ -94,31 +140,102 @@ class FractalExperiment:
 
         return ExperimentResult(counts=counts_df, regressions=regressions)
 
-    def run_density_check(self, name: str, iterations: int) -> pd.DataFrame:
+    def run_density_check(
+        self,
+        name: str,
+        iterations: int,
+        existing_result: ExperimentResult | None = None,
+        quick: bool = False,
+        parallel: bool = False,
+    ) -> pd.DataFrame:
         """Verify sampling density sufficiency by comparing with double density."""
+        start_total = time.time()
+        logger.info("Starting density check for %s n=%d...", name, iterations)
+
+        epsilons = self.epsilons
+        if quick:
+            epsilons = epsilons[::2]
+            logger.info("Quick mode enabled: sampling subset of epsilons.")
+
         results = []
-        for eps in self.epsilons:
-            dens_base = self._get_density(name, iterations, eps, double_density=False)
-            pts_base = self._generate_points(name, iterations, dens_base)
-            count_base = box_count(pts_base, np.array([eps])).iloc[0]["counts"]
 
-            dens_double = self._get_density(name, iterations, eps, double_density=True)
-            pts_double = self._generate_points(name, iterations, dens_double)
-            count_double = box_count(pts_double, np.array([eps])).iloc[0]["counts"]
+        if parallel:
+            logger.info("Running in parallel with %s cores.", os.cpu_count())
+            with Pool() as pool:
+                args = [(name, iterations, eps, self) for eps in epsilons]
+                for res in tqdm(
+                    pool.imap(_check_single_epsilon, args),
+                    total=len(epsilons),
+                    desc="Density Check",
+                ):
+                    results.append(res)
+                    logger.info(
+                        "Checked epsilon %.4g: %s pts. Delta: %.2f%%. Time: %.2fs",
+                        res["epsilon"],
+                        res["points_sampled"],
+                        res["delta_percent"],
+                        res["duration"],
+                    )
+        else:
+            for eps in tqdm(epsilons, desc="Density Check"):
+                start_eps = time.time()
 
-            delta = (
-                abs(count_double - count_base) / count_double * 100
-                if count_double > 0
-                else 0.0
-            )
+                count_base = None
+                n_points_base = 0
 
-            results.append(
-                {
-                    "epsilon": eps,
-                    "log_epsilon": -math.log(eps),
-                    "N_base": count_base,
-                    "N_dense": count_double,
-                    "delta_percent": delta,
-                }
-            )
+                if existing_result is not None:
+                    match = existing_result.counts[
+                        np.isclose(existing_result.counts["epsilon"], eps)
+                    ]
+                    if not match.empty:
+                        count_base = match.iloc[0]["counts"]
+
+                if count_base is None:
+                    dens_base = self._get_density(
+                        name, iterations, eps, double_density=False
+                    )
+                    pts_base = self._generate_points(name, iterations, dens_base)
+                    count_base = box_count(pts_base, np.array([eps])).iloc[0]["counts"]
+                    n_points_base = len(pts_base)
+
+                dens_double = self._get_density(
+                    name, iterations, eps, double_density=True
+                )
+                pts_double = self._generate_points(name, iterations, dens_double)
+                count_double = box_count(pts_double, np.array([eps])).iloc[0]["counts"]
+
+                delta = (
+                    abs(count_double - count_base) / count_double * 100
+                    if count_double > 0
+                    else 0.0
+                )
+
+                duration = time.time() - start_eps
+
+                logger.info(
+                    "Checked epsilon %.4g: %s pts. Delta: %.2f%%. Time: %.2fs",
+                    eps,
+                    n_points_base if n_points_base > 0 else "cached",
+                    delta,
+                    duration,
+                )
+
+                results.append(
+                    {
+                        "epsilon": eps,
+                        "log_epsilon": -math.log(eps),
+                        "N_base": count_base,
+                        "N_dense": count_double,
+                        "delta_percent": delta,
+                    }
+                )
+
+        total_duration = time.time() - start_total
+        logger.info(
+            "Density check completed for %s n=%d in %.2fs",
+            name,
+            iterations,
+            total_duration,
+        )
+
         return pd.DataFrame(results)
