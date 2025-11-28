@@ -21,6 +21,7 @@ from fractal_dimension.fractals import (
     generate_sierpinski_triangle,
 )
 from fractal_dimension.pipeline import FractalExperiment
+from fractal_dimension.regression import fit_scaling_relationship, WINDOW_PRESETS
 from fractal_dimension.regression import fit_scaling_relationship
 
 logging.basicConfig(
@@ -82,10 +83,95 @@ def plot_residuals(counts: pd.DataFrame, output: Path) -> None:
     rmse = np.sqrt(np.mean(residuals**2))
     fig, ax = plt.subplots(figsize=(6, 3.5))
     ax.axhline(0, color="black", linewidth=1, linestyle="--")
-    ax.scatter(counts["log_epsilon"], residuals, color="black", s=20, label=f"Residuals (RMSE={rmse:.3g})")
+    ax.scatter(
+        counts["log_epsilon"],
+        residuals,
+        color="black",
+        s=20,
+        label=f"Residuals (RMSE={rmse:.3g})",
+    )
     ax.set_xlabel(r"$\ln(\varepsilon)$")
     ax.set_ylabel("Residual")
     ax.set_title("Residual Analysis (Full Window)")
+    ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
+    fig.savefig(output, bbox_inches="tight", dpi=300)
+    plt.close(fig)
+
+
+def plot_residuals_scatter(
+    residual_data: list[dict], fractal_name: str, output: Path
+) -> None:
+    df = pd.DataFrame(residual_data)
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    iteration_colors = {
+        1: "blue",
+        2: "green",
+        3: "red",
+        4: "orange",
+        5: "purple",
+        6: "brown",
+    }
+
+    for iteration, group in df.groupby("iteration"):
+        color = iteration_colors.get(iteration, "black")
+        rmse = np.sqrt(np.mean(group["residual"] ** 2))
+        jitter = np.random.normal(0, 0.005, size=len(group))
+        ax.scatter(
+            group["log_epsilon"],
+            group["residual"] + jitter,
+            c=color,
+            label=f"n={iteration} (RMSE={rmse:.3g})",
+            s=30,
+            alpha=0.7,
+        )
+
+    ax.axhline(0, color="black", linewidth=1, linestyle="--")
+    ax.set_xlabel(r"$\ln(\varepsilon)$")
+    ax.set_ylabel("Residual")
+    ax.set_title(f"Residual Scatter Plot for {fractal_name.title()}")
+    ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
+    fig.savefig(output, bbox_inches="tight", dpi=300)
+    plt.close(fig)
+
+
+def plot_window_residuals_scatter(
+    residual_data: list[dict], fractal_name: str, output: Path
+) -> None:
+    df = pd.DataFrame(residual_data)
+    fig, ax = plt.subplots(figsize=(8, 5))
+
+    window_info = {
+        "full": ("blue", "Full Window"),
+        "coarse": ("green", "Coarse Window"),
+        "fine": ("red", "Fine Window"),
+        "slide_1_to_5": ("orange", "Slide 1-5"),
+        "slide_2_to_6": ("purple", "Slide 2-6"),
+        "slide_3_to_7": ("brown", "Slide 3-7"),
+        "slide_4_to_8": ("pink", "Slide 4-8"),
+        "slide_5_to_9": ("gray", "Slide 5-9"),
+        "slide_6_to_10": ("olive", "Slide 6-10"),
+    }
+
+    for window, group in df.groupby("window"):
+        color, base_label = window_info.get(window, ("black", window))
+        rmse = np.sqrt(np.mean(group["residual"] ** 2))
+        jitter = np.random.normal(0, 0.005, size=len(group))
+        ax.scatter(
+            group["log_epsilon"],
+            group["residual"] + jitter,
+            c=color,
+            label=f"{base_label} (RMSE={rmse:.3g})",
+            s=30,
+            alpha=0.7,
+        )
+
+    ax.axhline(0, color="black", linewidth=1, linestyle="--")
+    ax.set_xlabel(r"$\ln(\varepsilon)$")
+    ax.set_ylabel("Residual")
+    ax.set_title(f"Window Residual Scatter Plot for {fractal_name.title()}")
     ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
     ax.grid(True, linestyle=":", alpha=0.6)
     fig.savefig(output, bbox_inches="tight", dpi=300)
@@ -305,10 +391,28 @@ def run_pipeline(
     for spec in DEFAULT_SPECS:
         fractal_counts = []
         fractal_regressions = []
+        residual_data = []
+        window_residuals = []
 
         for iteration in range(1, max_iter + 1):
             logger.info("Processing %s iteration %d...", spec.name, iteration)
             result = exp.run(spec.name, iterations=iteration)
+
+            log_eps = result.counts["log_epsilon"].to_numpy()
+            log_counts = result.counts["log_counts"].to_numpy()
+
+            full_res = fit_scaling_relationship(
+                log_eps, log_counts, spec.theoretical_dimension
+            )
+            for i, res in enumerate(full_res.residuals):
+                residual_data.append(
+                    {
+                        "log_epsilon": log_eps[i],
+                        "residual": res,
+                        "iteration": iteration,
+                    }
+                )
+
             prefix = f"{spec.name}_n{iteration}"
 
             counts_path = output_dir / f"{prefix}_counts.csv"
@@ -346,11 +450,32 @@ def run_pipeline(
                 output_dir / f"{prefix}_local_slopes.png",
             )
 
+            if iteration == max_iter:
+                log_eps = result.counts["log_epsilon"].to_numpy()
+                log_counts = result.counts["log_counts"].to_numpy()
+                for window_name, sl in WINDOW_PRESETS.items():
+                    if sl.stop is not None and sl.stop > len(log_eps):
+                        continue
+                    subset_eps = log_eps[sl]
+                    subset_counts = log_counts[sl]
+                    if len(subset_eps) < 2:
+                        continue
+                    res = fit_scaling_relationship(
+                        subset_eps, subset_counts, spec.theoretical_dimension
+                    )
+                    for i, residual in enumerate(res.residuals):
+                        window_residuals.append(
+                            {
+                                "log_epsilon": subset_eps[i],
+                                "residual": residual,
+                                "window": window_name,
+                            }
+                        )
+
             fine_row = result.regressions[result.regressions["window"] == "fine"].iloc[
                 0
             ]
-            
-            # Calculate stability S (std dev of sliding window estimates)
+
             sliding_windows = result.regressions[
                 result.regressions["window"].str.startswith("slide_")
             ]
@@ -364,9 +489,29 @@ def run_pipeline(
                     "abs_error": fine_row.abs_error,
                     "rel_error": fine_row.rel_error,
                     "std_err": fine_row.std_err,
+                    "rmse": fine_row.rmse,
+                    "max_residual": fine_row.max_residual,
                     "stability_s": stability_s,
                 }
             )
+
+        pd.DataFrame(residual_data).to_csv(
+            output_dir / f"{spec.name}_all_residuals.csv", index=False
+        )
+
+        pd.DataFrame(window_residuals).to_csv(
+            output_dir / f"{spec.name}_window_residuals.csv", index=False
+        )
+
+        plot_residuals_scatter(
+            residual_data, spec.name, output_dir / f"{spec.name}_residuals_scatter.png"
+        )
+
+        plot_window_residuals_scatter(
+            window_residuals,
+            spec.name,
+            output_dir / f"{spec.name}_window_residuals_scatter.png",
+        )
 
         plot_multi_iteration_loglog(
             fractal_counts,
