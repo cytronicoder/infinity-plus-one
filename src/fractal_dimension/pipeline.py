@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+import math
+import os
+import time
 from dataclasses import dataclass
+from multiprocessing import Pool
 from typing import Dict, Iterable
 
 import numpy as np
@@ -16,13 +21,6 @@ from .fractals import (
     generate_sierpinski_triangle,
 )
 from .regression import summarize_windows
-
-
-import logging
-import time
-import math
-import os
-from multiprocessing import Pool
 
 try:
     from tqdm import tqdm
