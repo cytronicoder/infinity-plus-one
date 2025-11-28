@@ -53,17 +53,12 @@ def generate_koch_curve(
 ) -> np.ndarray:
     """Generate a normalized polyline approximation of the Koch curve.
 
-    Parameters
-    ----------
-    iterations:
-        Number of Koch iterations to apply (``1 <= n <= 6``).
-    samples_per_segment:
-        Number of interpolation points per segment to ensure stable box counts.
+    Args:
+        iterations (int): Number of Koch iterations to apply (1 <= n <= 6).
+        samples_per_segment (int): Interpolation points per segment for stable box counts.
 
-    Returns
-    -------
-    np.ndarray
-        Array of shape (N, 2) of points in ``[0, 1]^2`` anchored at the origin.
+    Returns:
+        np.ndarray: Array of shape (N, 2) of points in [0, 1]^2 anchored at the origin.
     """
 
     if not 1 <= iterations <= 6:
@@ -75,7 +70,18 @@ def generate_koch_curve(
 
 
 def _subdivide_triangle(triangle: np.ndarray) -> List[np.ndarray]:
-    """Return the three corner triangles after removing the central hole."""
+    """Return the three corner triangles after removing the central hole.
+
+    Parameters
+    ----------
+    triangle:
+        Array of shape (3, 2) representing the vertices of the triangle.
+
+    Returns
+    -------
+    List[np.ndarray]
+        List of three arrays, each of shape (3, 2), representing the sub-triangles.
+    """
 
     a, b, c = triangle
     ab = (a + b) / 2
@@ -89,7 +95,20 @@ def _subdivide_triangle(triangle: np.ndarray) -> List[np.ndarray]:
 
 
 def _triangle_grid(triangle: np.ndarray, samples: int) -> np.ndarray:
-    """Create deterministic barycentric grid samples inside a triangle."""
+    """Create deterministic barycentric grid samples inside a triangle.
+
+    Parameters
+    ----------
+    triangle:
+        Array of shape (3, 2) representing the vertices of the triangle.
+    samples:
+        Approximate number of points to generate.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape (N, 2) containing the sampled points.
+    """
 
     base = int(math.sqrt(samples)) or 1
     us = np.linspace(0, 1, base, endpoint=False)
@@ -110,9 +129,12 @@ def generate_sierpinski_triangle(
 ) -> np.ndarray:
     """Generate a point cloud approximation of the Sierpiński triangle.
 
-    The initial triangle is anchored at ``(0, 0)``, with side length one and
-    height ``sqrt(3)/2``. Points remain in ``[0, 1] x [0, 1]`` through
-    normalization.
+    Args:
+        iterations (int): Number of recursive subdivisions to apply (1 <= n <= 6).
+        samples_per_triangle (int): Points to sample per smallest triangle.
+
+    Returns:
+        np.ndarray: Array of shape (N, 2) of points in [0, 1]^2.
     """
 
     if not 1 <= iterations <= 6:

@@ -9,18 +9,12 @@ import pandas as pd
 def box_count(points: np.ndarray, epsilons: np.ndarray) -> pd.DataFrame:
     """Compute box counts for a collection of ``epsilon`` scales.
 
-    Parameters
-    ----------
-    points:
-        Array of shape (N, 2) in ``[0, 1]^2``.
-    epsilons:
-        One-dimensional array of box widths to evaluate.
+    Args:
+        points (np.ndarray): Array of shape (N, 2) in [0, 1]^2.
+        epsilons (np.ndarray): One-dimensional array of box widths to evaluate.
 
-    Returns
-    -------
-    pd.DataFrame
-        Columns ``epsilon``, ``log_epsilon``, ``counts`` (``N(ε)``), and
-        ``log_counts``.
+    Returns:
+        pd.DataFrame: DataFrame containing box counts for each epsilon.
     """
 
     if points.ndim != 2 or points.shape[1] != 2:

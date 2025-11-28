@@ -36,7 +36,16 @@ def fit_scaling_relationship(
     log_counts: np.ndarray,
     theoretical_dimension: float | None = None,
 ) -> RegressionResult:
-    """Fit ``log N`` against ``log epsilon`` and return diagnostic metrics."""
+    """Fit ``log N`` against ``log epsilon`` and return diagnostic metrics.
+
+    Args:
+        log_eps (np.ndarray): Logarithm of epsilon values.
+        log_counts (np.ndarray): Logarithm of box counts.
+        theoretical_dimension (float | None, optional): Theoretical fractal dimension.
+
+    Returns:
+        RegressionResult: Regression diagnostics including slope, intercept, and errors.
+    """
 
     slope, intercept, r_value, p_value, std_err = stats.linregress(log_eps, log_counts)
     predicted = intercept + slope * log_eps
@@ -73,7 +82,22 @@ def summarize_windows(
     log_counts: np.ndarray,
     theoretical_dimension: float | None = None,
 ) -> pd.DataFrame:
-    """Run regressions on all preset and sliding windows."""
+    """Run regressions on all preset and sliding windows.
+
+    Parameters
+    ----------
+    log_eps:
+        Array of log(epsilon) values.
+    log_counts:
+        Array of log(N(epsilon)) values.
+    theoretical_dimension:
+        Optional theoretical dimension for error calculation.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing regression results for each window.
+    """
     results = []
 
     for name, sl in WINDOW_PRESETS.items():

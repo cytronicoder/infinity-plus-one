@@ -43,6 +43,14 @@ plt.rcParams.update(
 
 
 def plot_log_log(counts: pd.DataFrame, title: str, output: Path) -> None:
+    """
+    Plot the log-log relationship between box size and box count.
+
+    Args:
+        counts: DataFrame containing 'log_epsilon' and 'log_counts'.
+        title: Title for the plot.
+        output: Path to save the plot.
+    """
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.plot(
         counts["log_epsilon"],
@@ -75,6 +83,13 @@ def plot_log_log(counts: pd.DataFrame, title: str, output: Path) -> None:
 
 
 def plot_residuals(counts: pd.DataFrame, output: Path) -> None:
+    """
+    Plot residuals from the best-fit line for a single iteration.
+
+    Args:
+        counts: DataFrame containing 'log_epsilon' and 'log_counts'.
+        output: Path to save the plot.
+    """
     result = fit_scaling_relationship(
         counts["log_epsilon"].to_numpy(), counts["log_counts"].to_numpy()
     )
@@ -102,8 +117,16 @@ def plot_residuals(counts: pd.DataFrame, output: Path) -> None:
 def plot_residuals_scatter(
     residual_data: list[dict], fractal_name: str, output: Path
 ) -> None:
+    """
+    Plot residuals for all iterations, colored by iteration.
+
+    Args:
+        residual_data: List of dictionaries containing residual data.
+        fractal_name: Name of the fractal (e.g., 'koch').
+        output: Path to save the plot.
+    """
     df = pd.DataFrame(residual_data)
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     iteration_colors = {
         1: "blue",
@@ -138,10 +161,18 @@ def plot_residuals_scatter(
 
 
 def plot_window_residuals_scatter(
-    residual_data: list[dict], fractal_name: str, output: Path
+    window_residuals: list[dict], fractal_name: str, output: Path
 ) -> None:
-    df = pd.DataFrame(residual_data)
-    fig, ax = plt.subplots(figsize=(8, 5))
+    """
+    Plot residuals for different window types, colored by window.
+
+    Args:
+        window_residuals: List of dictionaries containing window residual data.
+        fractal_name: Name of the fractal.
+        output: Path to save the plot.
+    """
+    df = pd.DataFrame(window_residuals)
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     window_info = {
         "full": ("blue", "Full Window"),
@@ -179,6 +210,13 @@ def plot_window_residuals_scatter(
 
 
 def plot_window_estimates(regressions: pd.DataFrame, output: Path) -> None:
+    """
+    Plot dimension estimates for sliding windows.
+
+    Args:
+        regressions: DataFrame containing regression results.
+        output: Path to save the plot.
+    """
     window_rows = regressions[regressions["window"].str.startswith("slide")].copy()
     window_rows["index"] = window_rows["window"].str.extract(r"(\d+)").astype(int)
     fig, ax = plt.subplots(figsize=(6, 3.5))
@@ -200,6 +238,13 @@ def plot_window_estimates(regressions: pd.DataFrame, output: Path) -> None:
 
 
 def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
+    """
+    Plot absolute error of dimension estimates vs. iteration.
+
+    Args:
+        summary: DataFrame containing summary statistics per iteration.
+        output: Path to save the plot.
+    """
     fig, ax = plt.subplots(figsize=(6, 3.5))
     sns.scatterplot(
         data=summary,
@@ -221,7 +266,15 @@ def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
 def plot_grid_overlay(
     fractal_name: str, generator_func, output: Path, iteration: int = 3
 ) -> None:
-    """Visualize grid counting for a fractal at different scales."""
+    """
+    Visualize grid counting for a fractal at different scales.
+
+    Args:
+        fractal_name: Name of the fractal.
+        generator_func: Function to generate fractal points.
+        output: Path to save the plot.
+        iteration: Iteration depth to visualize.
+    """
     if fractal_name == "koch":
         points = generator_func(iterations=iteration, samples_per_segment=100)
     else:
@@ -281,7 +334,14 @@ def plot_grid_overlay(
 
 
 def plot_local_slopes(counts: pd.DataFrame, title: str, output: Path) -> None:
-    """Plot discrete derivative of log-log curve."""
+    """
+    Plot discrete derivative of log-log curve to show local dimension estimates.
+
+    Args:
+        counts: DataFrame containing 'log_epsilon' and 'log_counts'.
+        title: Title for the plot.
+        output: Path to save the plot.
+    """
     log_eps = counts["log_epsilon"].to_numpy()
     log_N = counts["log_counts"].to_numpy()
 
@@ -301,7 +361,14 @@ def plot_local_slopes(counts: pd.DataFrame, title: str, output: Path) -> None:
 def plot_multi_iteration_loglog(
     all_counts: list[pd.DataFrame], fractal_name: str, output: Path
 ) -> None:
-    """Plot log-log curves for multiple iterations on one figure."""
+    """
+    Plot log-log curves for multiple iterations on one figure.
+
+    Args:
+        all_counts: List of DataFrames with count data for each iteration.
+        fractal_name: Name of the fractal.
+        output: Path to save the plot.
+    """
     fig, ax = plt.subplots(figsize=(8, 6))
 
     colors = sns.color_palette("viridis", len(all_counts))
@@ -344,7 +411,14 @@ def plot_multi_iteration_loglog(
 def plot_error_heatmap(
     all_regressions: pd.DataFrame, fractal_name: str, output: Path
 ) -> None:
-    """Plot heatmap of relative error vs iteration and window start."""
+    """
+    Plot heatmap of relative error vs iteration and window start.
+
+    Args:
+        all_regressions: DataFrame containing regression results for all iterations.
+        fractal_name: Name of the fractal.
+        output: Path to save the plot.
+    """
     df = all_regressions[all_regressions["window"].str.startswith("slide")].copy()
     df["window_start"] = df["window"].str.extract(r"slide_(\d+)_").astype(int)
     pivot = df.pivot(index="iteration", columns="window_start", values="rel_error")
@@ -373,6 +447,15 @@ def run_pipeline(
     quick_density: bool = False,
     parallel: bool = False,
 ) -> None:
+    """
+    Run the full analysis pipeline: generation, counting, regression, and plotting.
+
+    Args:
+        output_dir: Directory to save results.
+        max_iter: Maximum iteration depth for fractals.
+        quick_density: If True, use a subset of epsilons for density checks.
+        parallel: If True, run density checks in parallel.
+    """
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Grid Overlay Visualizations...")

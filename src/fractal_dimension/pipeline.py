@@ -40,7 +40,14 @@ class ExperimentResult:
 
 
 def _check_single_epsilon(args: tuple[str, int, float, FractalExperiment]) -> dict:
-    """Worker function for parallel density check."""
+    """Worker function for parallel density check.
+
+    Args:
+        args (tuple): Tuple containing name, iterations, epsilon, and experiment instance.
+
+    Returns:
+        dict: Dictionary with epsilon, log_epsilon, counts, and duration.
+    """
     name, iterations, eps, exp = args
     start_time = time.time()
 
@@ -72,9 +79,21 @@ def _check_single_epsilon(args: tuple[str, int, float, FractalExperiment]) -> di
 
 
 class FractalExperiment:
-    """Run box-counting experiments for named fractals and iteration depths."""
+    """Run box-counting experiments for named fractals and iteration depths.
+
+    Manages the generation of fractal points, box-counting at various scales,
+    and regression analysis to estimate fractal dimensions.
+
+    Args:
+        eps_powers (Iterable[int]): Powers of 2 for epsilon values.
+    """
 
     def __init__(self, eps_powers: Iterable[int] = range(1, 11)) -> None:
+        """Initialize the experiment with epsilon values.
+
+        Args:
+            eps_powers (Iterable[int]): Powers of 2 for epsilon values.
+        """
         self.epsilons = np.array([2 ** (-i) for i in eps_powers], dtype=float)
         self.specs: Dict[str, FractalSpec] = {spec.name: spec for spec in DEFAULT_SPECS}
 
@@ -116,6 +135,16 @@ class FractalExperiment:
         return 120 * factor
 
     def run(self, name: str, iterations: int) -> ExperimentResult:
+        """
+        Execute the box-counting experiment for a specific fractal and iteration.
+
+        Args:
+            name: Name of the fractal (e.g., 'koch').
+            iterations: Iteration depth.
+
+        Returns:
+            ExperimentResult containing box counts and regression analysis.
+        """
         spec = self.specs[name]
         all_counts = []
 
@@ -146,7 +175,26 @@ class FractalExperiment:
         quick: bool = False,
         parallel: bool = False,
     ) -> pd.DataFrame:
-        """Verify sampling density sufficiency by comparing with double density."""
+        """Verify sampling density sufficiency by comparing with double density.
+
+        Parameters
+        ----------
+        name:
+            Name of the fractal (e.g., 'koch').
+        iterations:
+            Iteration depth.
+        existing_result:
+            Optional existing experiment result to reuse cached counts.
+        quick:
+            If True, check only a subset of epsilons.
+        parallel:
+            If True, run checks in parallel using multiprocessing.
+
+        Returns
+        -------
+        pd.DataFrame
+            DataFrame containing density check results (delta percentages).
+        """
         start_total = time.time()
         logger.info("Starting density check for %s n=%d...", name, iterations)
 

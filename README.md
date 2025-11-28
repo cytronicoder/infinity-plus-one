@@ -6,11 +6,11 @@ We report:
 
 - slope-based estimates $D_{\text{est}} = -m$
 - coefficient of determination $R^2$
-- residual diagnostics
+- residual diagnostics (RMSE, max residual)
 - absolute and relative errors against the theoretical benchmarks
 
-  - $D_{\text{Koch}} = \ln(4) / \ln(3)$
-  - $D_{\text{Sier}} = \ln(3) / \ln(2)$
+  - $D_{\text{Koch}} = \ln(4) / \ln(3) \approx 1.2619$
+  - $D_{\text{Sier}} = \ln(3) / \ln(2) \approx 1.5850$
 
 ## Reproduce Results
 
@@ -27,14 +27,32 @@ pip install -r requirements.txt
 (Produces tables and plots in `results/`.)
 
 ```bash
-python scripts/run_analysis.py --output results --max-iter 6 --density 120
+python scripts/run_analysis.py --output results --max-iter 6 --quick-density
 ```
+
+Arguments:
+
+- `--output`: Directory for output files (default: `results`)
+- `--max-iter`: Maximum iteration depth (default: 6)
+- `--quick-density`: Sample a subset of epsilons for density check (faster)
+- `--parallel`: Run density check in parallel
 
 ### 3. Inspect outputs
 
-- `*_counts.csv` and `*_regressions.csv` for each fractal/iteration
-- `*_loglog.png`, `*_residuals.png`, `*_windows.png` plots
-- `iteration_accuracy.csv` and `iteration_accuracy.png` summarizing convergence toward theory
+**Data Tables:**
+
+- `iteration_accuracy.csv`: Summary of convergence metrics (D_est, Error, RMSE, Stability) for each iteration.
+- `*_all_residuals.csv`: Detailed residual data for every epsilon and iteration.
+- `*_window_residuals.csv`: Residuals for specific window presets (fine, coarse, full).
+- `*_counts.csv` and `*_regressions.csv`: Raw box counts and regression results for each fractal/iteration.
+
+**Visualizations:**
+
+- `*_residuals_scatter.png`: Scatter plot of residuals vs. epsilon, colored by iteration.
+- `*_window_residuals_scatter.png`: Scatter plot of residuals vs. epsilon, colored by window type.
+- `*_loglog.png`: Log-log plots of box counts vs. epsilon.
+- `*_convergence_loglog.png`: Combined log-log plots for multiple iterations.
+- `*_error_heatmap.png`: Heatmap of relative errors across different window starts.
 
 ## License
 
