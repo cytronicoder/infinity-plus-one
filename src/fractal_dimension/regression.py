@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -12,6 +11,21 @@ from scipy import stats
 
 @dataclass
 class RegressionResult:
+    """Container for regression diagnostics returned from scaling fits.
+
+    Attributes:
+        slope: Slope of log(N) vs log(epsilon).
+        intercept: Intercept of the best-fit line.
+        r2: Coefficient of determination.
+        residuals: Residuals of the fit (observed - predicted).
+        rmse: Root mean squared error of residuals.
+        max_residual: Maximum absolute residual value.
+        d_est: Estimated fractal dimension (-slope).
+        abs_error: Absolute error vs theoretical dimension (if supplied).
+        rel_error: Relative error vs theoretical dimension (if supplied).
+        std_err: Standard error of the slope estimate.
+    """
+
     slope: float
     intercept: float
     r2: float
@@ -47,7 +61,7 @@ def fit_scaling_relationship(
         RegressionResult: Regression diagnostics including slope, intercept, and errors.
     """
 
-    slope, intercept, r_value, p_value, std_err = stats.linregress(log_eps, log_counts)
+    slope, intercept, r_value, _p_value, std_err = stats.linregress(log_eps, log_counts)
     predicted = intercept + slope * log_eps
     residuals = log_counts - predicted
     rmse = np.sqrt(np.mean(residuals**2))
@@ -84,19 +98,13 @@ def summarize_windows(
 ) -> pd.DataFrame:
     """Run regressions on all preset and sliding windows.
 
-    Parameters
-    ----------
-    log_eps:
-        Array of log(epsilon) values.
-    log_counts:
-        Array of log(N(epsilon)) values.
-    theoretical_dimension:
-        Optional theoretical dimension for error calculation.
+    Args:
+        log_eps (np.ndarray): Array of log(epsilon) values.
+        log_counts (np.ndarray): Array of log(N(epsilon)) values.
+        theoretical_dimension (float | None, optional): Optional theoretical dimension for error calculation.
 
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame containing regression results for each window.
+    Returns:
+        pd.DataFrame: DataFrame containing regression results for each window.
     """
     results = []
 

@@ -1,4 +1,8 @@
-"""End-to-end pipeline to reproduce IA figures and tables."""
+"""End-to-end pipeline to reproduce IA figures and tables.
+
+The script adds the local `src` path to make `fractal_dimension` package
+importable when running the script directly rather than as an installed package.
+"""
 
 from __future__ import annotations
 
@@ -7,13 +11,13 @@ import logging
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path(__file__).parent.parent / "src"))
-
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from fractal_dimension.fractals import (
     DEFAULT_SPECS,
@@ -22,7 +26,6 @@ from fractal_dimension.fractals import (
 )
 from fractal_dimension.pipeline import FractalExperiment
 from fractal_dimension.regression import fit_scaling_relationship, WINDOW_PRESETS
-from fractal_dimension.regression import fit_scaling_relationship
 
 logging.basicConfig(
     level=logging.INFO,
@@ -343,9 +346,9 @@ def plot_local_slopes(counts: pd.DataFrame, title: str, output: Path) -> None:
         output: Path to save the plot.
     """
     log_eps = counts["log_epsilon"].to_numpy()
-    log_N = counts["log_counts"].to_numpy()
+    log_counts = counts["log_counts"].to_numpy()
 
-    slopes = -np.diff(log_N) / np.diff(log_eps)
+    slopes = -np.diff(log_counts) / np.diff(log_eps)
     mid_log_eps = (log_eps[:-1] + log_eps[1:]) / 2
 
     fig, ax = plt.subplots(figsize=(6, 4))

@@ -72,15 +72,11 @@ def generate_koch_curve(
 def _subdivide_triangle(triangle: np.ndarray) -> List[np.ndarray]:
     """Return the three corner triangles after removing the central hole.
 
-    Parameters
-    ----------
-    triangle:
-        Array of shape (3, 2) representing the vertices of the triangle.
+    Args:
+        triangle (np.ndarray): Array of shape (3, 2) representing the vertices of the triangle.
 
-    Returns
-    -------
-    List[np.ndarray]
-        List of three arrays, each of shape (3, 2), representing the sub-triangles.
+    Returns:
+        List[np.ndarray]: List of three arrays, each of shape (3, 2), representing the sub-triangles.
     """
 
     a, b, c = triangle
@@ -97,17 +93,12 @@ def _subdivide_triangle(triangle: np.ndarray) -> List[np.ndarray]:
 def _triangle_grid(triangle: np.ndarray, samples: int) -> np.ndarray:
     """Create deterministic barycentric grid samples inside a triangle.
 
-    Parameters
-    ----------
-    triangle:
-        Array of shape (3, 2) representing the vertices of the triangle.
-    samples:
-        Approximate number of points to generate.
+    Args:
+        triangle (np.ndarray): Array of shape (3, 2) representing the vertices of the triangle.
+        samples (int): Approximate number of points to generate.
 
-    Returns
-    -------
-    np.ndarray
-        Array of shape (N, 2) containing the sampled points.
+    Returns:
+        np.ndarray: Array of shape (N, 2) containing the sampled points.
     """
 
     base = int(math.sqrt(samples)) or 1

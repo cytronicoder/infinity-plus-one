@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 import numpy as np
-from pathlib import Path
+
+sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from fractal_dimension.fractals import generate_koch_curve, generate_sierpinski_triangle
 

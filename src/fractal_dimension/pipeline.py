@@ -26,7 +26,12 @@ try:
     from tqdm import tqdm
 except ImportError:
 
-    def tqdm(iterable, **kwargs):
+    def tqdm(iterable, **_kwargs):
+        """Small local fallback for tqdm when the package isn't available.
+
+        This mirrors tqdm's signature minimally for internal loops during testing
+        or CI where the dependency might be omitted.
+        """
         return iterable
 
 
@@ -35,6 +40,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ExperimentResult:
+    """Holds experiment output: box counts and regression summaries.
+
+    Attributes:
+        counts: DataFrame of box counts for each epsilon.
+        regressions: DataFrame of regression diagnostics for windows.
+    """
+
     counts: pd.DataFrame
     regressions: pd.DataFrame
 
@@ -177,23 +189,15 @@ class FractalExperiment:
     ) -> pd.DataFrame:
         """Verify sampling density sufficiency by comparing with double density.
 
-        Parameters
-        ----------
-        name:
-            Name of the fractal (e.g., 'koch').
-        iterations:
-            Iteration depth.
-        existing_result:
-            Optional existing experiment result to reuse cached counts.
-        quick:
-            If True, check only a subset of epsilons.
-        parallel:
-            If True, run checks in parallel using multiprocessing.
+        Args:
+            name (str): Name of the fractal (e.g., 'koch').
+            iterations (int): Iteration depth.
+            existing_result (ExperimentResult | None): Optional existing experiment result to reuse cached counts.
+            quick (bool): If True, check only a subset of epsilons.
+            parallel (bool): If True, run checks in parallel using multiprocessing.
 
-        Returns
-        -------
-        pd.DataFrame
-            DataFrame containing density check results (delta percentages).
+        Returns:
+            pd.DataFrame: DataFrame containing density check results (delta percentages).
         """
         start_total = time.time()
         logger.info("Starting density check for %s n=%d...", name, iterations)
