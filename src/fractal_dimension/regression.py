@@ -16,9 +16,12 @@ class RegressionResult:
     intercept: float
     r2: float
     residuals: np.ndarray
+    rmse: float
+    max_residual: float
     d_est: float
     abs_error: float
     rel_error: float
+    std_err: float
 
 
 WINDOW_PRESETS = {
@@ -35,9 +38,11 @@ def fit_scaling_relationship(
 ) -> RegressionResult:
     """Fit ``log N`` against ``log epsilon`` and return diagnostic metrics."""
 
-    slope, intercept, r_value, _, _ = stats.linregress(log_eps, log_counts)
+    slope, intercept, r_value, p_value, std_err = stats.linregress(log_eps, log_counts)
     predicted = intercept + slope * log_eps
     residuals = log_counts - predicted
+    rmse = np.sqrt(np.mean(residuals**2))
+    max_residual = np.max(np.abs(residuals))
     d_est = -slope
     abs_error = (
         float("nan")
@@ -54,9 +59,12 @@ def fit_scaling_relationship(
         intercept=intercept,
         r2=r_value**2,
         residuals=residuals,
+        rmse=rmse,
+        max_residual=max_residual,
         d_est=d_est,
         abs_error=abs_error,
         rel_error=rel_error,
+        std_err=std_err,
     )
 
 
@@ -85,9 +93,12 @@ def summarize_windows(
                 "slope": res.slope,
                 "intercept": res.intercept,
                 "r2": res.r2,
+                "rmse": res.rmse,
+                "max_residual": res.max_residual,
                 "d_est": res.d_est,
                 "abs_error": res.abs_error,
                 "rel_error": res.rel_error,
+                "std_err": res.std_err,
             }
         )
 
@@ -108,9 +119,12 @@ def summarize_windows(
                 "slope": res.slope,
                 "intercept": res.intercept,
                 "r2": res.r2,
+                "rmse": res.rmse,
+                "max_residual": res.max_residual,
                 "d_est": res.d_est,
                 "abs_error": res.abs_error,
                 "rel_error": res.rel_error,
+                "std_err": res.std_err,
             }
         )
 

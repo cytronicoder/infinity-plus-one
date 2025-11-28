@@ -44,15 +44,31 @@ plt.rcParams.update(
 def plot_log_log(counts: pd.DataFrame, title: str, output: Path) -> None:
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.plot(
-        -counts["log_epsilon"],
+        counts["log_epsilon"],
         counts["log_counts"],
         marker="o",
+        linestyle="",
         color="black",
         markersize=4,
     )
-    ax.set_xlabel(r"$-\ln(\varepsilon)$")
+    result = fit_scaling_relationship(
+        counts["log_epsilon"].to_numpy(), counts["log_counts"].to_numpy()
+    )
+    log_eps_sorted = np.sort(counts["log_epsilon"])
+    predicted = result.intercept + result.slope * log_eps_sorted
+    ax.plot(
+        log_eps_sorted,
+        predicted,
+        linestyle="-",
+        color="red",
+        linewidth=1.5,
+        label=f"Best fit: m = {result.slope:.3g}\nD = -m = {-result.slope:.3g}",
+    )
+    ax.set_xlabel(r"$\ln(\varepsilon)$")
     ax.set_ylabel(r"$\ln N(\varepsilon)$")
-    ax.set_title(title)
+    ax.set_title(f"Box-Counting Scaling Relationship for {title}")
+    ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
@@ -63,12 +79,15 @@ def plot_residuals(counts: pd.DataFrame, output: Path) -> None:
     )
     predicted = result.intercept + result.slope * counts["log_epsilon"]
     residuals = counts["log_counts"] - predicted
+    rmse = np.sqrt(np.mean(residuals**2))
     fig, ax = plt.subplots(figsize=(6, 3.5))
     ax.axhline(0, color="black", linewidth=1, linestyle="--")
-    ax.scatter(-counts["log_epsilon"], residuals, color="black", s=20)
-    ax.set_xlabel(r"$-\ln(\varepsilon)$")
+    ax.scatter(counts["log_epsilon"], residuals, color="black", s=20, label=f"Residuals (RMSE={rmse:.3g})")
+    ax.set_xlabel(r"$\ln(\varepsilon)$")
     ax.set_ylabel("Residual")
-    ax.set_title("Residual diagnostics (full window)")
+    ax.set_title("Residual Analysis (Full Window)")
+    ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
@@ -81,19 +100,22 @@ def plot_window_estimates(regressions: pd.DataFrame, output: Path) -> None:
         window_rows["index"],
         window_rows["d_est"],
         marker="o",
+        linestyle="",
         label=r"$D_{est}$",
         color="black",
     )
     ax.set_xlabel("Sliding window index")
     ax.set_ylabel(r"$D_{est}$")
-    ax.set_title("Window-by-window slope estimates (width = 5)")
+    ax.set_title("Sliding Window Slope Estimates (Width = 5)")
+    ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
 
 def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
     fig, ax = plt.subplots(figsize=(6, 3.5))
-    sns.lineplot(
+    sns.scatterplot(
         data=summary,
         x="iteration",
         y="abs_error",
@@ -103,7 +125,9 @@ def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
         palette="viridis",
     )
     ax.set_ylabel(r"$E_{abs}$")
-    ax.set_title("Iteration depth vs. absolute error (fine window)")
+    ax.set_title("Iteration vs. Absolute Error (Fine Window)")
+    ax.legend(frameon=True, handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
@@ -179,10 +203,8 @@ def plot_local_slopes(counts: pd.DataFrame, title: str, output: Path) -> None:
     mid_log_eps = (log_eps[:-1] + log_eps[1:]) / 2
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(
-        -mid_log_eps, slopes, marker="o", linestyle="-", color="black", markersize=4
-    )
-    ax.set_xlabel(r"$-\ln(\varepsilon)$ (midpoint)")
+    ax.plot(mid_log_eps, slopes, marker="o", linestyle="", color="black", markersize=4)
+    ax.set_xlabel(r"$\ln(\varepsilon)$ (midpoint)")
     ax.set_ylabel(r"Local Dimension Estimate")
     ax.set_title(f"Local Slopes: {title}")
     ax.grid(True, linestyle=":", alpha=0.6)
@@ -200,20 +222,35 @@ def plot_multi_iteration_loglog(
 
     for i, counts in enumerate(all_counts):
         iteration = i + 1
+        result = fit_scaling_relationship(
+            counts["log_epsilon"].to_numpy(), counts["log_counts"].to_numpy()
+        )
+        log_eps_sorted = np.sort(counts["log_epsilon"])
+        predicted = result.intercept + result.slope * log_eps_sorted
         ax.plot(
-            -counts["log_epsilon"],
-            counts["log_counts"],
-            marker=".",
+            log_eps_sorted,
+            predicted,
             linestyle="-",
             color=colors[i],
-            label=f"n={iteration}",
+            linewidth=1.5,
+            label=f"Iteration {iteration}: m = {result.slope:.3g}\nD = -m = {-result.slope:.3g}",
+            alpha=0.8,
+        )
+        ax.plot(
+            counts["log_epsilon"],
+            counts["log_counts"],
+            marker="o",
+            linestyle="",
+            color=colors[i],
+            markersize=3,
             alpha=0.8,
         )
 
-    ax.set_xlabel(r"$-\ln(\varepsilon)$")
+    ax.set_xlabel(r"$\ln(\varepsilon)$")
     ax.set_ylabel(r"$\ln N(\varepsilon)$")
-    ax.set_title(f"Convergence of Scaling Law: {fractal_name.title()}")
-    ax.legend(frameon=False)
+    ax.set_title(f"Convergence of Scaling Law for {fractal_name.title()}")
+    ax.legend(frameon=True, loc="lower right", handlelength=1, handletextpad=0.5)
+    ax.grid(True, linestyle=":", alpha=0.6)
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
@@ -312,6 +349,13 @@ def run_pipeline(
             fine_row = result.regressions[result.regressions["window"] == "fine"].iloc[
                 0
             ]
+            
+            # Calculate stability S (std dev of sliding window estimates)
+            sliding_windows = result.regressions[
+                result.regressions["window"].str.startswith("slide_")
+            ]
+            stability_s = sliding_windows["d_est"].std()
+
             summary_rows.append(
                 {
                     "fractal": spec.name,
@@ -319,6 +363,8 @@ def run_pipeline(
                     "d_est": fine_row.d_est,
                     "abs_error": fine_row.abs_error,
                     "rel_error": fine_row.rel_error,
+                    "std_err": fine_row.std_err,
+                    "stability_s": stability_s,
                 }
             )
 

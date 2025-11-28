@@ -35,6 +35,7 @@ def compile_window_comparison():
                 "std_D_est": d_ests.std(),
                 "MAE": abs_errors.mean(),
                 "MRE": rel_errors.mean(),
+                "mean_std_err": group["std_err"].mean(),
             }
             window_stats.append(stats)
 
