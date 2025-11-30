@@ -22,8 +22,6 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from fractal_dimension.fractals import (
     DEFAULT_SPECS,
-    generate_koch_curve,
-    generate_sierpinski_triangle,
     get_koch_vertices,
     sample_koch_with_epsilon,
     get_sierpinski_triangles,

@@ -222,9 +222,9 @@ def _is_point_in_triangle_vectorized(pts: np.ndarray, tri: np.ndarray) -> np.nda
     dot11 = np.dot(v1, v1)
     dot12 = np.sum(v1 * v2, axis=1)
 
-    invDenom = 1 / (dot00 * dot11 - dot01 * dot01)
-    u = (dot11 * dot02 - dot01 * dot12) * invDenom
-    v = (dot00 * dot12 - dot01 * dot02) * invDenom
+    inv_denom = 1 / (dot00 * dot11 - dot01 * dot01)
+    u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+    v = (dot00 * dot12 - dot01 * dot02) * inv_denom
 
     return (u >= 0) & (v >= 0) & (u + v <= 1)
 

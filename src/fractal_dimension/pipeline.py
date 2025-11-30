@@ -17,8 +17,6 @@ from .boxcount import box_count
 from .fractals import (
     DEFAULT_SPECS,
     FractalSpec,
-    generate_koch_curve,
-    generate_sierpinski_triangle,
     get_koch_vertices,
     sample_koch_with_epsilon,
     get_sierpinski_triangles,
