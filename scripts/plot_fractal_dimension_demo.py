@@ -9,7 +9,11 @@ import matplotlib.pyplot as plt
 
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from fractal_dimension.fractals import generate_koch_curve, generate_sierpinski_triangle
+from fractal_dimension.fractals import (
+    get_koch_vertices,
+    get_sierpinski_triangles,
+    sample_sierpinski_with_epsilon,
+)
 
 plt.rcParams.update(
     {
@@ -25,23 +29,25 @@ def plot_fractal_dimension_demo(output: Path) -> None:
     """Demonstrate fractal dimension calculations for Koch and Sierpiński."""
     fig, axes = plt.subplots(2, 6, figsize=(30, 12))
 
-    fractals = [
-        ("Koch Curve", generate_koch_curve),
-        ("Sierpiński Triangle", generate_sierpinski_triangle),
-    ]
+    fractals = ["Koch Curve", "Sierpiński Triangle"]
 
-    for row, (fractal_name, generator_func) in enumerate(fractals):
+    for row, fractal_name in enumerate(fractals):
         for col in range(6):
             iteration = col + 1
             ax = axes[row, col]
             if fractal_name == "Koch Curve":
-                points = generator_func(iterations=iteration, samples_per_segment=50)
+                # For Koch, we just plot the vertices as a line
+                points = get_koch_vertices(iteration)
                 linewidth = 2 + iteration * 0.25
                 ax.plot(points[:, 0], points[:, 1], "k-", linewidth=linewidth)
             else:
-                points = generator_func(iterations=iteration, samples_per_triangle=100)
+                # For Sierpinski, we sample with a fine epsilon to show the shape
+                tris = get_sierpinski_triangles(iteration)
+                # Use a small epsilon for visualization purposes
+                points = sample_sierpinski_with_epsilon(tris, epsilon=1/128)
                 markersize = 1.5 + (4 - iteration) * 0.5
                 ax.scatter(points[:, 0], points[:, 1], c="k", s=markersize)
+            
             ax.set_xlim(0, 1)
             ax.set_ylim(0, 0.866 if fractal_name == "Sierpiński Triangle" else 1)
             ax.set_aspect("equal")

@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+from scipy import stats
 
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
@@ -23,6 +24,10 @@ from fractal_dimension.fractals import (
     DEFAULT_SPECS,
     generate_koch_curve,
     generate_sierpinski_triangle,
+    get_koch_vertices,
+    sample_koch_with_epsilon,
+    get_sierpinski_triangles,
+    sample_sierpinski_with_epsilon,
 )
 from fractal_dimension.pipeline import FractalExperiment
 from fractal_dimension.regression import fit_scaling_relationship, WINDOW_PRESETS
@@ -267,22 +272,16 @@ def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
 
 
 def plot_grid_overlay(
-    fractal_name: str, generator_func, output: Path, iteration: int = 3
+    fractal_name: str, output: Path, iteration: int = 3
 ) -> None:
     """
     Visualize grid counting for a fractal at different scales.
 
     Args:
         fractal_name: Name of the fractal.
-        generator_func: Function to generate fractal points.
         output: Path to save the plot.
         iteration: Iteration depth to visualize.
     """
-    if fractal_name == "koch":
-        points = generator_func(iterations=iteration, samples_per_segment=100)
-    else:
-        points = generator_func(iterations=iteration, samples_per_triangle=100)
-
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
     fig.suptitle(
         f"Grid Overlay: {fractal_name.title()} (n={iteration})", fontsize=14, y=1.05
@@ -291,6 +290,14 @@ def plot_grid_overlay(
     epsilons = [1 / 4, 1 / 16, 1 / 64]
 
     for ax, eps in zip(axes, epsilons):
+        # Generate points specifically for this epsilon using the new method
+        if fractal_name == "koch":
+            verts = get_koch_vertices(iteration)
+            points = sample_koch_with_epsilon(verts, eps)
+        else:
+            tris = get_sierpinski_triangles(iteration)
+            points = sample_sierpinski_with_epsilon(tris, eps)
+
         pts_norm = (points - points.min(axis=0)) / (
             points.max(axis=0) - points.min(axis=0)
         ).max()
@@ -444,6 +451,61 @@ def plot_error_heatmap(
     plt.close(fig)
 
 
+def plot_convergence_fit(
+    summary: pd.DataFrame, fractal_name: str, output: Path
+) -> None:
+    """
+    Plot ln(error) vs n and fit a line to test convergence.
+
+    Args:
+        summary: DataFrame containing summary statistics per iteration.
+        fractal_name: Name of the fractal.
+        output: Path to save the plot.
+    """
+    df = summary[summary["fractal"] == fractal_name].copy()
+    # Filter out zero error to avoid log(0)
+    df = df[df["abs_error"] > 0].copy()
+    
+    if len(df) < 2:
+        return
+
+    df["log_error"] = np.log(df["abs_error"])
+    
+    # Fit line: log_error = C - p * n * ln(a)
+    # We fit y = slope * x + intercept where x = n
+    # slope should be approx -p * ln(a) => p = -slope / ln(a)
+    
+    slope, intercept, r_value, _, _ = stats.linregress(df["iteration"], df["log_error"])
+    
+    # Determine scaling factor 'a'
+    if "koch" in fractal_name.lower():
+        a = 3.0
+    elif "sierpinski" in fractal_name.lower():
+        a = 2.0
+    else:
+        a = np.nan
+        
+    p_val = -slope / np.log(a) if not np.isnan(a) else np.nan
+    
+    fig, ax = plt.subplots(figsize=(6, 4))
+    ax.scatter(df["iteration"], df["log_error"], color="black", label="Data")
+    
+    x_vals = np.array([df["iteration"].min(), df["iteration"].max()])
+    y_vals = intercept + slope * x_vals
+    
+    label_str = f"Fit ($R^2={r_value**2:.3f}$)\n$C={intercept:.3f}$\n$p={p_val:.3f}$"
+    ax.plot(x_vals, y_vals, "r--", label=label_str)
+    
+    ax.set_xlabel("Iteration $n$")
+    ax.set_ylabel(r"$\ln e_W(n)$")
+    ax.set_title(f"Convergence Analysis: {fractal_name.title()}")
+    ax.legend()
+    ax.grid(True, linestyle=":", alpha=0.6)
+    
+    fig.savefig(output, bbox_inches="tight", dpi=300)
+    plt.close(fig)
+
+
 def run_pipeline(
     output_dir: Path,
     max_iter: int = 6,
@@ -462,14 +524,8 @@ def run_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     logger.info("Generating Grid Overlay Visualizations...")
-    plot_grid_overlay(
-        "koch", generate_koch_curve, output_dir / "viz_grid_overlay_koch.png"
-    )
-    plot_grid_overlay(
-        "sierpinski",
-        generate_sierpinski_triangle,
-        output_dir / "viz_grid_overlay_sierpinski.png",
-    )
+    plot_grid_overlay("koch", output_dir / "viz_grid_overlay_koch.png")
+    plot_grid_overlay("sierpinski", output_dir / "viz_grid_overlay_sierpinski.png")
 
     exp = FractalExperiment()
     summary_rows = []
@@ -565,7 +621,9 @@ def run_pipeline(
             sliding_windows = result.regressions[
                 result.regressions["window"].str.startswith("slide_")
             ]
-            stability_s = sliding_windows["d_est"].std()
+            # Calculate S using population standard deviation (ddof=0) as per requirement
+            # S = sqrt(1/6 * sum((D_j - D_bar)^2))
+            stability_s = sliding_windows["d_est"].std(ddof=0)
 
             summary_rows.append(
                 {
@@ -608,6 +666,11 @@ def run_pipeline(
         all_fractal_regs = pd.concat(fractal_regressions)
         plot_error_heatmap(
             all_fractal_regs, spec.name, output_dir / f"{spec.name}_error_heatmap.png"
+        )
+        
+        # Plot convergence fit
+        plot_convergence_fit(
+            pd.DataFrame(summary_rows), spec.name, output_dir / f"{spec.name}_convergence_fit.png"
         )
 
     summary_df = pd.DataFrame(summary_rows)

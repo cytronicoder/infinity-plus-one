@@ -11,7 +11,12 @@ import numpy as np
 
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
-from fractal_dimension.fractals import generate_koch_curve, generate_sierpinski_triangle
+from fractal_dimension.fractals import (
+    get_koch_vertices,
+    sample_koch_with_epsilon,
+    get_sierpinski_triangles,
+    sample_sierpinski_with_epsilon,
+)
 
 plt.rcParams.update(
     {
@@ -27,21 +32,21 @@ def plot_combined_grid_overlay(output: Path, iteration: int = 3) -> None:
     """Visualize grid counting for both fractals at different scales in a combined figure."""
     fig, axes = plt.subplots(2, 3, figsize=(18, 12))
 
-    fractals = [
-        ("Koch Curve", generate_koch_curve),
-        ("Sierpiński Triangle", generate_sierpinski_triangle),
-    ]
+    fractals = ["Koch Curve", "Sierpiński Triangle"]
 
     epsilons = [1 / 4, 1 / 16, 1 / 64]
 
-    for row, (fractal_name, generator_func) in enumerate(fractals):
-        if fractal_name == "Koch Curve":
-            points = generator_func(iterations=iteration, samples_per_segment=100)
-        else:
-            points = generator_func(iterations=iteration, samples_per_triangle=100)
-
+    for row, fractal_name in enumerate(fractals):
         for col, eps in enumerate(epsilons):
             ax = axes[row, col]
+            
+            if fractal_name == "Koch Curve":
+                verts = get_koch_vertices(iteration)
+                points = sample_koch_with_epsilon(verts, eps)
+            else:
+                tris = get_sierpinski_triangles(iteration)
+                points = sample_sierpinski_with_epsilon(tris, eps)
+
             pts_norm = (points - points.min(axis=0)) / (
                 points.max(axis=0) - points.min(axis=0)
             ).max()
@@ -56,7 +61,12 @@ def plot_combined_grid_overlay(output: Path, iteration: int = 3) -> None:
                     y_idx -= 1
                 hit_boxes.add((x_idx, y_idx))
 
-            ax.plot(pts_norm[:, 0], pts_norm[:, 1], "k-", linewidth=1.2, alpha=0.9)
+            # For visualization, we plot the points. 
+            # For Sierpinski, it's a cloud, for Koch it's a line.
+            if fractal_name == "Koch Curve":
+                ax.plot(pts_norm[:, 0], pts_norm[:, 1], "k-", linewidth=1.2, alpha=0.9)
+            else:
+                ax.scatter(pts_norm[:, 0], pts_norm[:, 1], c="k", s=1, alpha=0.5)
 
             ticks = np.arange(0, 1.001, eps)
             for t in ticks:

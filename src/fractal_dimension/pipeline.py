@@ -19,6 +19,10 @@ from .fractals import (
     FractalSpec,
     generate_koch_curve,
     generate_sierpinski_triangle,
+    get_koch_vertices,
+    sample_koch_with_epsilon,
+    get_sierpinski_triangles,
+    sample_sierpinski_with_epsilon,
 )
 from .regression import summarize_windows
 
@@ -64,13 +68,11 @@ def _check_single_epsilon(args: tuple[str, int, float, FractalExperiment]) -> di
     start_time = time.time()
 
     # pylint: disable=protected-access
-    dens_base = exp._get_density(name, iterations, eps, double_density=False)
-    pts_base = exp._generate_points(name, iterations, dens_base)
+    pts_base = exp._generate_points(name, iterations, eps, double_density=False)
     count_base = box_count(pts_base, np.array([eps])).iloc[0]["counts"]
     n_points_base = len(pts_base)
 
-    dens_double = exp._get_density(name, iterations, eps, double_density=True)
-    pts_double = exp._generate_points(name, iterations, dens_double)
+    pts_double = exp._generate_points(name, iterations, eps, double_density=True)
     count_double = box_count(pts_double, np.array([eps])).iloc[0]["counts"]
 
     delta = (
@@ -110,41 +112,23 @@ class FractalExperiment:
         self.specs: Dict[str, FractalSpec] = {spec.name: spec for spec in DEFAULT_SPECS}
 
     def _generate_points(
-        self, name: str, iterations: int, sample_density: int
+        self, name: str, iterations: int, epsilon: float, double_density: bool = False
     ) -> np.ndarray:
         spec = self.specs.get(name)
         if spec is None:
             raise ValueError(f"Unknown fractal: {name}")
 
-        if spec.generator == "generate_koch_curve":
-            return generate_koch_curve(
-                iterations=iterations, samples_per_segment=sample_density
-            )
+        eff_epsilon = epsilon / 2.0 if double_density else epsilon
 
-        if spec.generator == "generate_sierpinski_triangle":
-            return generate_sierpinski_triangle(
-                iterations=iterations, samples_per_triangle=sample_density
-            )
+        if spec.name == "koch":
+            vertices = get_koch_vertices(iterations)
+            return sample_koch_with_epsilon(vertices, eff_epsilon)
+
+        if spec.name == "sierpinski":
+            triangles = get_sierpinski_triangles(iterations)
+            return sample_sierpinski_with_epsilon(triangles, eff_epsilon)
 
         raise ValueError(f"Unknown generator: {spec.generator}")
-
-    def _get_density(
-        self, name: str, iterations: int, eps: float, double_density: bool = False
-    ) -> int:
-        """Calculate sampling density based on fractal type and epsilon."""
-        factor = 2 if double_density else 1
-
-        if name == "koch":
-            return math.ceil(4 * factor / eps)
-
-        if name == "sierpinski":
-            side_len = 0.5**iterations
-            spacing = eps / (2.5 * factor)
-            points_per_side = side_len / spacing
-            density = math.ceil(points_per_side**2)
-            return max(1, density)
-
-        return 120 * factor
 
     def run(self, name: str, iterations: int) -> ExperimentResult:
         """
@@ -161,8 +145,7 @@ class FractalExperiment:
         all_counts = []
 
         for eps in self.epsilons:
-            density = self._get_density(name, iterations, eps)
-            points = self._generate_points(name, iterations, density)
+            points = self._generate_points(name, iterations, eps)
             df = box_count(points, np.array([eps]))
             all_counts.append(df)
 
@@ -241,17 +224,15 @@ class FractalExperiment:
                         count_base = match.iloc[0]["counts"]
 
                 if count_base is None:
-                    dens_base = self._get_density(
+                    pts_base = self._generate_points(
                         name, iterations, eps, double_density=False
                     )
-                    pts_base = self._generate_points(name, iterations, dens_base)
                     count_base = box_count(pts_base, np.array([eps])).iloc[0]["counts"]
                     n_points_base = len(pts_base)
 
-                dens_double = self._get_density(
+                pts_double = self._generate_points(
                     name, iterations, eps, double_density=True
                 )
-                pts_double = self._generate_points(name, iterations, dens_double)
                 count_double = box_count(pts_double, np.array([eps])).iloc[0]["counts"]
 
                 delta = (
