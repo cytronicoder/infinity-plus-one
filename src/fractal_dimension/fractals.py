@@ -171,15 +171,11 @@ def sample_koch_with_epsilon(vertices: np.ndarray, epsilon: float) -> np.ndarray
     Returns:
         np.ndarray: Array of sampled points.
     """
-    # Calculate segment length (all segments are equal length)
     p1 = vertices[0]
     p2 = vertices[1]
     seg_len = np.linalg.norm(p2 - p1)
 
     spacing = epsilon / 4.0
-    # p = ceil(len / spacing) + 1 points per segment (including endpoints)
-    # _sample_polyline generates N points per segment + 1 at end.
-    # So we want samples_per_segment = ceil(len / spacing).
     samples_per_segment = math.ceil(seg_len / spacing)
 
     return _sample_polyline(vertices, samples_per_segment)
@@ -217,7 +213,7 @@ def _is_point_in_triangle_vectorized(pts: np.ndarray, tri: np.ndarray) -> np.nda
 
     dot00 = np.dot(v0, v0)
     dot01 = np.dot(v0, v1)
-    # v0 is (2,), v2 is (N, 2). We want dot product for each point.
+
     dot02 = np.sum(v0 * v2, axis=1)
     dot11 = np.dot(v1, v1)
     dot12 = np.sum(v1 * v2, axis=1)
@@ -244,18 +240,15 @@ def sample_sierpinski_with_epsilon(
     spacing = epsilon / 3.0
     points_list = []
 
-    # Optimization: Iterate triangles and find grid points in their bounding box
     for tri in triangles:
         min_x, max_x = np.min(tri[:, 0]), np.max(tri[:, 0])
         min_y, max_y = np.min(tri[:, 1]), np.max(tri[:, 1])
 
-        # Grid indices
         i_start = math.floor(min_x / spacing)
         i_end = math.ceil(max_x / spacing)
         j_start = math.floor(min_y / spacing)
         j_end = math.ceil(max_y / spacing)
 
-        # Vectorized grid generation
         i = np.arange(i_start, i_end + 1)
         j = np.arange(j_start, j_end + 1)
         if len(i) == 0 or len(j) == 0:
@@ -271,7 +264,6 @@ def sample_sierpinski_with_epsilon(
     if not points_list:
         return np.zeros((0, 2))
 
-    # Remove duplicates (triangles touch at vertices)
     all_points = np.vstack(points_list)
     return np.unique(all_points, axis=0)
 

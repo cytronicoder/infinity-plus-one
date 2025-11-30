@@ -36,14 +36,11 @@ def plot_fractal_dimension_demo(output: Path) -> None:
             iteration = col + 1
             ax = axes[row, col]
             if fractal_name == "Koch Curve":
-                # For Koch, we just plot the vertices as a line
                 points = get_koch_vertices(iteration)
                 linewidth = 2 + iteration * 0.25
                 ax.plot(points[:, 0], points[:, 1], "k-", linewidth=linewidth)
             else:
-                # For Sierpinski, we sample with a fine epsilon to show the shape
                 tris = get_sierpinski_triangles(iteration)
-                # Use a small epsilon for visualization purposes
                 points = sample_sierpinski_with_epsilon(tris, epsilon=1 / 128)
                 markersize = 1.5 + (4 - iteration) * 0.5
                 ax.scatter(points[:, 0], points[:, 1], c="k", s=markersize)

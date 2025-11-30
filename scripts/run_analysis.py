@@ -286,7 +286,6 @@ def plot_grid_overlay(fractal_name: str, output: Path, iteration: int = 3) -> No
     epsilons = [1 / 4, 1 / 16, 1 / 64]
 
     for ax, eps in zip(axes, epsilons):
-        # Generate points specifically for this epsilon using the new method
         if fractal_name == "koch":
             verts = get_koch_vertices(iteration)
             points = sample_koch_with_epsilon(verts, eps)
@@ -459,7 +458,6 @@ def plot_convergence_fit(
         output: Path to save the plot.
     """
     df = summary[summary["fractal"] == fractal_name].copy()
-    # Filter out zero error to avoid log(0)
     df = df[df["abs_error"] > 0].copy()
 
     if len(df) < 2:
@@ -467,13 +465,7 @@ def plot_convergence_fit(
 
     df["log_error"] = np.log(df["abs_error"])
 
-    # Fit line: log_error = C - p * n * ln(a)
-    # We fit y = slope * x + intercept where x = n
-    # slope should be approx -p * ln(a) => p = -slope / ln(a)
-
     slope, intercept, r_value, _, _ = stats.linregress(df["iteration"], df["log_error"])
-
-    # Determine scaling factor 'a'
     if "koch" in fractal_name.lower():
         a = 3.0
     elif "sierpinski" in fractal_name.lower():
@@ -525,10 +517,13 @@ def run_pipeline(
 
     exp = FractalExperiment()
     summary_rows = []
+    convergence_results = []
 
     for spec in DEFAULT_SPECS:
         fractal_counts = []
         fractal_regressions = []
+        fractal_density_checks = []
+        fractal_local_slopes = []
         residual_data = []
         window_residuals = []
 
@@ -555,6 +550,7 @@ def run_pipeline(
 
             counts_path = output_dir / f"{prefix}_counts.csv"
             result.counts.to_csv(counts_path, index=False)
+            result.counts["iteration"] = iteration
             fractal_counts.append(result.counts)
 
             regress_path = output_dir / f"{prefix}_regressions.csv"
@@ -571,6 +567,8 @@ def run_pipeline(
                 parallel=parallel,
             )
             density_df.to_csv(output_dir / f"{prefix}_density_check.csv", index=False)
+            density_df["iteration"] = iteration
+            fractal_density_checks.append(density_df)
 
             plot_log_log(
                 result.counts,
@@ -586,6 +584,27 @@ def run_pipeline(
                 result.counts,
                 f"{spec.name.title()} n={iteration}",
                 output_dir / f"{prefix}_local_slopes.png",
+            )
+
+            log_eps = result.counts["log_epsilon"].to_numpy()
+            log_counts = result.counts["log_counts"].to_numpy()
+
+            sort_idx = np.argsort(log_eps)
+            log_eps_sorted = log_eps[sort_idx]
+            log_counts_sorted = log_counts[sort_idx]
+
+            local_dim = -np.diff(log_counts_sorted) / np.diff(log_eps_sorted)
+            mid_log_eps = (log_eps_sorted[:-1] + log_eps_sorted[1:]) / 2
+
+            fractal_local_slopes.append(
+                pd.DataFrame(
+                    {
+                        "fractal": spec.name,
+                        "iteration": iteration,
+                        "log_epsilon_mid": mid_log_eps,
+                        "local_dimension": local_dim,
+                    }
+                )
             )
 
             if iteration == max_iter:
@@ -617,8 +636,7 @@ def run_pipeline(
             sliding_windows = result.regressions[
                 result.regressions["window"].str.startswith("slide_")
             ]
-            # Calculate S using population standard deviation (ddof=0) as per requirement
-            # S = sqrt(1/6 * sum((D_j - D_bar)^2))
+
             stability_s = sliding_windows["d_est"].std(ddof=0)
 
             summary_rows.append(
@@ -631,6 +649,7 @@ def run_pipeline(
                     "std_err": fine_row.std_err,
                     "rmse": fine_row.rmse,
                     "max_residual": fine_row.max_residual,
+                    "r2": fine_row.r2,
                     "stability_s": stability_s,
                 }
             )
@@ -641,6 +660,19 @@ def run_pipeline(
 
         pd.DataFrame(window_residuals).to_csv(
             output_dir / f"{spec.name}_window_residuals.csv", index=False
+        )
+
+        pd.concat(fractal_counts, ignore_index=True).to_csv(
+            output_dir / f"{spec.name}_all_counts.csv", index=False
+        )
+        pd.concat(fractal_regressions, ignore_index=True).to_csv(
+            output_dir / f"{spec.name}_all_regressions.csv", index=False
+        )
+        pd.concat(fractal_density_checks, ignore_index=True).to_csv(
+            output_dir / f"{spec.name}_all_density_checks.csv", index=False
+        )
+        pd.concat(fractal_local_slopes, ignore_index=True).to_csv(
+            output_dir / f"{spec.name}_all_local_slopes.csv", index=False
         )
 
         plot_residuals_scatter(
@@ -664,15 +696,49 @@ def run_pipeline(
             all_fractal_regs, spec.name, output_dir / f"{spec.name}_error_heatmap.png"
         )
 
-        # Plot convergence fit
         plot_convergence_fit(
             pd.DataFrame(summary_rows),
             spec.name,
             output_dir / f"{spec.name}_convergence_fit.png",
         )
 
+        df_summary = pd.DataFrame(summary_rows)
+        df_fractal = df_summary[df_summary["fractal"] == spec.name].copy()
+        df_fractal = df_fractal[df_fractal["abs_error"] > 0].copy()
+
+        if len(df_fractal) >= 2:
+            df_fractal["log_error"] = np.log(df_fractal["abs_error"])
+            slope, intercept, r_value, p_value, std_err = stats.linregress(
+                df_fractal["iteration"], df_fractal["log_error"]
+            )
+
+            if "koch" in spec.name.lower():
+                a = 3.0
+            elif "sierpinski" in spec.name.lower():
+                a = 2.0
+            else:
+                a = np.nan
+
+            p_param = -slope / np.log(a) if not np.isnan(a) else np.nan
+
+            convergence_results.append(
+                {
+                    "fractal": spec.name,
+                    "slope": slope,
+                    "intercept": intercept,
+                    "r2": r_value**2,
+                    "p_value_regression": p_value,
+                    "std_err": std_err,
+                    "p_param": p_param,
+                    "scaling_factor_a": a,
+                }
+            )
+
     summary_df = pd.DataFrame(summary_rows)
     summary_df.to_csv(output_dir / "iteration_accuracy.csv", index=False)
+    pd.DataFrame(convergence_results).to_csv(
+        output_dir / "convergence_model_params.csv", index=False
+    )
     plot_iteration_accuracy(summary_df, output_dir / "iteration_accuracy.png")
 
 

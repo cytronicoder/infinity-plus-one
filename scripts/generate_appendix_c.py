@@ -32,7 +32,6 @@ def calculate_counts_with_offset(
     """Compute box counts with a grid offset using adaptive sampling."""
     records = []
     for eps in epsilons:
-        # Generate points for this epsilon
         if fractal_type == "koch":
             verts = get_koch_vertices(iterations)
             points = sample_koch_with_epsilon(verts, eps)
@@ -42,10 +41,8 @@ def calculate_counts_with_offset(
         else:
             raise ValueError(f"Unknown fractal type: {fractal_type}")
 
-        # Shift
         shifted_points = points - np.array(offset)
 
-        # Count
         indices = np.floor(shifted_points / eps).astype(int)
         unique_boxes = np.unique(indices, axis=0).shape[0]
         records.append(
@@ -63,7 +60,6 @@ def main():
     epsilons = 2.0 ** -np.arange(1, 11)
     offsets = [(0.0, 0.0), (0.001, 0.001), (0.01, 0.01), (0.1, 0.1)]
 
-    # Process each iteration
     for n in range(1, 7):
         print("=" * 80)
         print(f"Iteration n={n}")
@@ -118,7 +114,6 @@ def main():
             d_current = float(results[i]["D_est"])
             diff = abs(d_base - d_current)
             results[i]["Diff"] = f"{diff:.4f}"
-            # results[i]["Pass"] = "Yes" if diff < 0.01 else "No" # User said ignore criteria
 
         results_df = pd.DataFrame(results)
         print(results_df.to_string(index=False))
