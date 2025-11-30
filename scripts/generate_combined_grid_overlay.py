@@ -39,7 +39,7 @@ def plot_combined_grid_overlay(output: Path, iteration: int = 3) -> None:
     for row, fractal_name in enumerate(fractals):
         for col, eps in enumerate(epsilons):
             ax = axes[row, col]
-            
+
             if fractal_name == "Koch Curve":
                 verts = get_koch_vertices(iteration)
                 points = sample_koch_with_epsilon(verts, eps)
@@ -61,7 +61,7 @@ def plot_combined_grid_overlay(output: Path, iteration: int = 3) -> None:
                     y_idx -= 1
                 hit_boxes.add((x_idx, y_idx))
 
-            # For visualization, we plot the points. 
+            # For visualization, we plot the points.
             # For Sierpinski, it's a cloud, for Koch it's a line.
             if fractal_name == "Koch Curve":
                 ax.plot(pts_norm[:, 0], pts_norm[:, 1], "k-", linewidth=1.2, alpha=0.9)

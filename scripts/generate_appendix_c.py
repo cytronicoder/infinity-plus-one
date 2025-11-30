@@ -88,7 +88,9 @@ def main():
             )
 
             print(display_table.to_string(index=False))
-            display_table.to_csv(f"results/appendix_c_sampling_koch_n{n}.csv", index=False)
+            display_table.to_csv(
+                f"results/appendix_c_sampling_koch_n{n}.csv", index=False
+            )
 
         except FileNotFoundError:
             print(

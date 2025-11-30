@@ -271,9 +271,7 @@ def plot_iteration_accuracy(summary: pd.DataFrame, output: Path) -> None:
     plt.close(fig)
 
 
-def plot_grid_overlay(
-    fractal_name: str, output: Path, iteration: int = 3
-) -> None:
+def plot_grid_overlay(fractal_name: str, output: Path, iteration: int = 3) -> None:
     """
     Visualize grid counting for a fractal at different scales.
 
@@ -465,18 +463,18 @@ def plot_convergence_fit(
     df = summary[summary["fractal"] == fractal_name].copy()
     # Filter out zero error to avoid log(0)
     df = df[df["abs_error"] > 0].copy()
-    
+
     if len(df) < 2:
         return
 
     df["log_error"] = np.log(df["abs_error"])
-    
+
     # Fit line: log_error = C - p * n * ln(a)
     # We fit y = slope * x + intercept where x = n
     # slope should be approx -p * ln(a) => p = -slope / ln(a)
-    
+
     slope, intercept, r_value, _, _ = stats.linregress(df["iteration"], df["log_error"])
-    
+
     # Determine scaling factor 'a'
     if "koch" in fractal_name.lower():
         a = 3.0
@@ -484,24 +482,24 @@ def plot_convergence_fit(
         a = 2.0
     else:
         a = np.nan
-        
+
     p_val = -slope / np.log(a) if not np.isnan(a) else np.nan
-    
+
     fig, ax = plt.subplots(figsize=(6, 4))
     ax.scatter(df["iteration"], df["log_error"], color="black", label="Data")
-    
+
     x_vals = np.array([df["iteration"].min(), df["iteration"].max()])
     y_vals = intercept + slope * x_vals
-    
+
     label_str = f"Fit ($R^2={r_value**2:.3f}$)\n$C={intercept:.3f}$\n$p={p_val:.3f}$"
     ax.plot(x_vals, y_vals, "r--", label=label_str)
-    
+
     ax.set_xlabel("Iteration $n$")
     ax.set_ylabel(r"$\ln e_W(n)$")
     ax.set_title(f"Convergence Analysis: {fractal_name.title()}")
     ax.legend()
     ax.grid(True, linestyle=":", alpha=0.6)
-    
+
     fig.savefig(output, bbox_inches="tight", dpi=300)
     plt.close(fig)
 
@@ -667,10 +665,12 @@ def run_pipeline(
         plot_error_heatmap(
             all_fractal_regs, spec.name, output_dir / f"{spec.name}_error_heatmap.png"
         )
-        
+
         # Plot convergence fit
         plot_convergence_fit(
-            pd.DataFrame(summary_rows), spec.name, output_dir / f"{spec.name}_convergence_fit.png"
+            pd.DataFrame(summary_rows),
+            spec.name,
+            output_dir / f"{spec.name}_convergence_fit.png",
         )
 
     summary_df = pd.DataFrame(summary_rows)

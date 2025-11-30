@@ -44,10 +44,10 @@ def plot_fractal_dimension_demo(output: Path) -> None:
                 # For Sierpinski, we sample with a fine epsilon to show the shape
                 tris = get_sierpinski_triangles(iteration)
                 # Use a small epsilon for visualization purposes
-                points = sample_sierpinski_with_epsilon(tris, epsilon=1/128)
+                points = sample_sierpinski_with_epsilon(tris, epsilon=1 / 128)
                 markersize = 1.5 + (4 - iteration) * 0.5
                 ax.scatter(points[:, 0], points[:, 1], c="k", s=markersize)
-            
+
             ax.set_xlim(0, 1)
             ax.set_ylim(0, 0.866 if fractal_name == "Sierpiński Triangle" else 1)
             ax.set_aspect("equal")
